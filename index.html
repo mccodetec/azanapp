@@ -101,6 +101,7 @@
             font-size: 13px;
         }
         .btn.secondary { background: #2ed573; }
+        .btn.test { background: #1e90ff; }
     </style>
 </head>
 <body>
@@ -132,11 +133,13 @@
 
     <div class="controls">
         <button class="btn" id="enableAudio" onclick="initAudio()">1. Enable Azan Sound</button>
+        <button class="btn test" onclick="testSound()">Test Azan Sound Now</button>
         <button class="btn secondary" id="toggleAlarm" onclick="toggleAlarmStatus()">Alarm: ON</button>
     </div>
 </div>
 
-<audio id="normalAzan" src="https://islamicfinder.org/audio/azan.mp3" preload="auto"></audio>
+<!-- Working Audio Links -->
+<audio id="normalAzan" src="https://www.islamcan.com/audio/adhan/azan1.mp3" preload="auto"></audio>
 <audio id="fajrAzan" src="https://www.islamcan.com/audio/adhan/azan2.mp3" preload="auto"></audio>
 
 <script>
@@ -154,10 +157,23 @@
             audio2.play().then(() => {
                 audio2.pause();
                 audio2.currentTime = 0;
-                document.getElementById('enableAudio').style.display = 'none';
-                alert("Azan Sound Enabled Successfully!");
+                alert("Audio Enabled Successfully! Azan will play at prayer times.");
             });
-        }).catch(e => console.log("Audio Init Error:", e));
+        }).catch(e => {
+            console.log("Audio Init Error:", e);
+            alert("Please tap again or check browser audio permissions.");
+        });
+    }
+
+    function testSound() {
+        const audio = document.getElementById('normalAzan');
+        audio.currentTime = 0;
+        audio.play().then(() => {
+            alert("Playing test sound...");
+        }).catch(err => {
+            alert("Playback blocked! Please click '1. Enable Azan Sound' first.");
+            console.error(err);
+        });
     }
 
     function toggleAlarmStatus() {
@@ -229,7 +245,6 @@
             let prayerTime = window.currentTimings[prayer]; // "HH:MM"
             let key = `${todayStr}-${prayer}`;
 
-            // സെക്കൻഡ് 0 ആയിരിക്കുമ്പോൾ കൃത്യമായി ഒന്നുതവണ അദാൻ മുഴങ്ങും
             if (prayerTime === currentTimeStr && currentSeconds === 0 && !azanPlayedToday[key]) {
                 let audio = (prayer === 'Fajr') ? document.getElementById('fajrAzan') : document.getElementById('normalAzan');
                 audio.play().catch(err => console.log("Auto-play blocked:", err));
@@ -257,7 +272,6 @@
             }
         }
 
-        // ഇന്നത്തെ അവസാന നിസ്കാരവും കഴിഞ്ഞെങ്കിൽ നാളത്തെ ഫജറിലേക്ക് കൗണ്ട്ഡൗൺ കാണിക്കാം
         if (nextPrayerSec === -1) {
             let [fh, fm] = window.currentTimings['Fajr'].split(':').map(Number);
             nextPrayerName = "Fajr (Tomorrow)";
