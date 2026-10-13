@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ml">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>കേരള ബാങ്ക് & നിസ്കാര സമയം</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; background: #f4f4f9; padding: 20px; }
+        .container { background: white; padding: 20px; border-radius: 10px; max-width: 400px; margin: auto; box-shadow: 0px 0px 10px rgba(0,0,0,0.1); }
+        select, button { padding: 10px; margin: 10px; width: 80%; font-size: 16px; }
+        .time-box { font-size: 20px; color: #2c3e50; margin: 15px 0; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>കേരള സമയക്രമം</h2>
+    <label for="district">ജില്ല തിരഞ്ഞെടുക്കുക:</label><br>
+    <select id="district" onchange="getTimings()">
+        <option value="Kozhikode">കോഴിക്കോട്</option>
+        <option value="Malappuram">മലപ്പുറം</option>
+        <option value="Thiruvananthapuram">തിരുവനന്തപുരം</option>
+        <option value="Ernakulam">എറണാകുളം</option>
+    </select>
+
+    <div class="time-box" id="currentTime">നിലവിലെ സമയം: --:--:--</div>
+    <div class="time-box" id="azanTime">ബാങ്ക് സമയം: കണക്കാക്കുന്നു...</div>
+</div>
+
+<script>
+    // സമയം ലൈവ് ആയി കാണിക്കാൻ
+    setInterval(() => {
+        const now = new Date();
+        document.getElementById('currentTime').innerText = "നിലവിലെ സമയം: " + now.toLocaleTimeString('en-IN');
+    }, 1000);
+
+    function getTimings() {
+        const district = document.getElementById('district').value;
+        // ഇവിടെ Aladhan API ഉപയോഗിച്ച് സമയങ്ങൾ ഫാറ്റ് ചെയ്ത് എടുക്കാം
+        // ഉദാഹരണത്തിന് മലപ്പുറം/കോഴിക്കോട് കോർഡിനേറ്റുകൾ നൽകാം
+        fetch(`https://api.aladhan.com/v1/timingsByCity?city=${district}&country=India&method=2`)
+            .response => response.json()
+            .then(data => {
+                const timings = data.data.timings;
+                document.getElementById('azanTime').innerText = "സുബ്ഹ്: " + timings.Fajr + " | മഗ്‌രിബ്: " + timings.Maghrib;
+            }).catch(err => console.log(err));
+    }
+
+    getTimings();
+</script>
+
+</body>
+</html>
