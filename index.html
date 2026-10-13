@@ -25,12 +25,12 @@
             padding: 20px;
             border-radius: 20px;
             width: 100%;
-            max-width: 400px;
+            max-width: 420px;
             box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
             text-align: center;
         }
-        h2 { margin-bottom: 12px; font-weight: 600; font-size: 20px; }
-        label { font-size: 12px; font-weight: 300; display: block; text-align: left; margin-top: 8px; }
+        h2 { margin-bottom: 10px; font-weight: 600; font-size: 20px; }
+        label { font-size: 12px; font-weight: 300; display: block; text-align: left; margin-top: 6px; }
         select {
             width: 100%;
             padding: 10px;
@@ -44,12 +44,21 @@
             outline: none;
         }
         .time-box {
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 400;
             background: rgba(0, 0, 0, 0.2);
             padding: 8px;
             border-radius: 8px;
-            margin: 12px 0;
+            margin: 10px 0;
+        }
+        .countdown-box {
+            font-size: 15px;
+            font-weight: 600;
+            background: rgba(255, 165, 2, 0.3);
+            padding: 8px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border: 1px solid rgba(255, 165, 2, 0.5);
         }
         .timings-list {
             text-align: left;
@@ -62,13 +71,13 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 6px;
+            margin-bottom: 8px;
             border-bottom: 1px solid rgba(255,255,255,0.1);
             padding-bottom: 4px;
         }
         .prayer-row input {
-            width: 45px;
-            padding: 3px;
+            width: 40px;
+            padding: 2px;
             text-align: center;
             border-radius: 5px;
             border: none;
@@ -111,13 +120,14 @@
     </select>
 
     <div class="time-box" id="currentTime">Current Time: --:--:--</div>
+    <div class="countdown-box" id="countdownTimer">Next Prayer in: --:--:--</div>
     
     <div class="timings-list">
-        <div class="prayer-row"><span>Fajr:</span> <span id="fajr">--:--</span> <label style="margin:0">Offset(+/-): <input type="number" id="off_Fajr" value="0" onchange="getTimings()"></label></div>
-        <div class="prayer-row"><span>Dhuhr:</span> <span id="dhuhr">--:--</span> <label style="margin:0">Offset(+/-): <input type="number" id="off_Dhuhr" value="0" onchange="getTimings()"></label></div>
-        <div class="prayer-row"><span>Asr:</span> <span id="asr">--:--</span> <label style="margin:0">Offset(+/-): <input type="number" id="off_Asr" value="0" onchange="getTimings()"></label></div>
-        <div class="prayer-row"><span>Maghrib:</span> <span id="maghrib">--:--</span> <label style="margin:0">Offset(+/-): <input type="number" id="off_Maghrib" value="0" onchange="getTimings()"></label></div>
-        <div class="prayer-row"><span>Isha:</span> <span id="isha">--:--</span> <label style="margin:0">Offset(+/-): <input type="number" id="off_Isha" value="0" onchange="getTimings()"></label></div>
+        <div class="prayer-row"><span>Fajr:</span> <span id="fajr">--:--</span> <label style="margin:0">+/- <input type="number" id="off_Fajr" value="0" onchange="updateDisplayedTimings()"></label></div>
+        <div class="prayer-row"><span>Dhuhr:</span> <span id="dhuhr">--:--</span> <label style="margin:0">+/- <input type="number" id="off_Dhuhr" value="0" onchange="updateDisplayedTimings()"></label></div>
+        <div class="prayer-row"><span>Asr:</span> <span id="asr">--:--</span> <label style="margin:0">+/- <input type="number" id="off_Asr" value="0" onchange="updateDisplayedTimings()"></label></div>
+        <div class="prayer-row"><span>Maghrib:</span> <span id="maghrib">--:--</span> <label style="margin:0">+/- <input type="number" id="off_Maghrib" value="0" onchange="updateDisplayedTimings()"></label></div>
+        <div class="prayer-row"><span>Isha:</span> <span id="isha">--:--</span> <label style="margin:0">+/- <input type="number" id="off_Isha" value="0" onchange="updateDisplayedTimings()"></label></div>
     </div>
 
     <div class="controls">
@@ -133,6 +143,7 @@
     let azanPlayedToday = {};
     let alarmActive = true;
     let rawTimingsData = {};
+    window.currentTimings = {};
 
     function initAudio() {
         const audio1 = document.getElementById('normalAzan');
@@ -162,11 +173,11 @@
         if (alarmActive) {
             checkAzanTime(now);
         }
+        updateCountdown(now);
     }, 1000);
 
     function getTimings() {
         const district = document.getElementById('district').value;
-
         fetch(`https://api.aladhan.com/v1/timingsByCity?city=${district}&country=India&method=2`)
             .then(response => response.json())
             .then(data => {
@@ -184,11 +195,7 @@
         ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'].forEach(prayer => {
             let offset = parseInt(document.getElementById(`off_${prayer}`).value) || 0;
             let adjustedTime = adjustMinutes(rawTimingsData[prayer], offset);
-            
-            // Save final adjusted time globally for alarm checking
-            if(!window.currentTimings) window.currentTimings = {};
             window.currentTimings[prayer] = adjustedTime;
-
             document.getElementById(prayer.toLowerCase()).innerText = format12Hour(adjustedTime);
         });
     }
@@ -210,21 +217,58 @@
     }
 
     function checkAzanTime(now) {
-        if (!window.currentTimings) return;
+        if (!window.currentTimings.Fajr) return;
 
-        let currentTimeStr = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+        let currentHours = String(now.getHours()).padStart(2, '0');
+        let currentMinutes = String(now.getMinutes()).padStart(2, '0');
+        let currentSeconds = now.getSeconds();
+        let currentTimeStr = `${currentHours}:${currentMinutes}`;
         let todayStr = now.toDateString();
 
         ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'].forEach(prayer => {
-            let prayerTime = window.currentTimings[prayer];
+            let prayerTime = window.currentTimings[prayer]; // "HH:MM"
             let key = `${todayStr}-${prayer}`;
 
-            if (prayerTime === currentTimeStr && !azanPlayedToday[key]) {
+            // സെക്കൻഡ് 0 ആയിരിക്കുമ്പോൾ കൃത്യമായി ഒന്നുതവണ അദാൻ മുഴങ്ങും
+            if (prayerTime === currentTimeStr && currentSeconds === 0 && !azanPlayedToday[key]) {
                 let audio = (prayer === 'Fajr') ? document.getElementById('fajrAzan') : document.getElementById('normalAzan');
                 audio.play().catch(err => console.log("Auto-play blocked:", err));
                 azanPlayedToday[key] = true;
             }
         });
+    }
+
+    function updateCountdown(now) {
+        if (!window.currentTimings.Fajr) return;
+
+        let prayers = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+        let nowTotalSec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+        let nextPrayerName = "";
+        let nextPrayerSec = -1;
+
+        for (let prayer of prayers) {
+            let [ph, pm] = window.currentTimings[prayer].split(':').map(Number);
+            let pTotalSec = ph * 3600 + pm * 60;
+
+            if (pTotalSec > nowTotalSec) {
+                nextPrayerName = prayer;
+                nextPrayerSec = pTotalSec - nowTotalSec;
+                break;
+            }
+        }
+
+        // ഇന്നത്തെ അവസാന നിസ്കാരവും കഴിഞ്ഞെങ്കിൽ നാളത്തെ ഫജറിലേക്ക് കൗണ്ട്ഡൗൺ കാണിക്കാം
+        if (nextPrayerSec === -1) {
+            let [fh, fm] = window.currentTimings['Fajr'].split(':').map(Number);
+            nextPrayerName = "Fajr (Tomorrow)";
+            nextPrayerSec = (24 * 3600 - nowTotalSec) + (fh * 3600 + fm * 60);
+        }
+
+        let h = Math.floor(nextPrayerSec / 3600);
+        let m = Math.floor((nextPrayerSec % 3600) / 60);
+        let s = nextPrayerSec % 60;
+
+        document.getElementById('countdownTimer').innerText = `${nextPrayerName} in: ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
     }
 
     getTimings();
