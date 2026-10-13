@@ -28,7 +28,7 @@
 </div>
 
 <script>
-    // സമയം ലൈവ് ആയി കാണിക്കാൻ
+    // നിലവിലെ സമയം ലൈവ് ആയി കാണിക്കാൻ
     setInterval(() => {
         const now = new Date();
         document.getElementById('currentTime').innerText = "നിലവിലെ സമയം: " + now.toLocaleTimeString('en-IN');
@@ -36,18 +36,30 @@
 
     function getTimings() {
         const district = document.getElementById('district').value;
-        // ഇവിടെ Aladhan API ഉപയോഗിച്ച് സമയങ്ങൾ ഫാറ്റ് ചെയ്ത് എടുക്കാം
-        // ഉദാഹരണത്തിന് മലപ്പുറം/കോഴിക്കോട് കോർഡിനേറ്റുകൾ നൽകാം
+        document.getElementById('azanTime').innerText = "ബാങ്ക് സമയം: ലോഡ് ചെയ്യുന്നു...";
+
         fetch(`https://api.aladhan.com/v1/timingsByCity?city=${district}&country=India&method=2`)
-            .response => response.json()
+            .then(response => response.json())
             .then(data => {
-                const timings = data.data.timings;
-                document.getElementById('azanTime').innerText = "സുബ്ഹ്: " + timings.Fajr + " | മഗ്‌രിബ്: " + timings.Maghrib;
-            }).catch(err => console.log(err));
+                if (data && data.data && data.data.timings) {
+                    const timings = data.data.timings;
+                    document.getElementById('azanTime').innerHTML = `
+                        ഫജർ: ${timings.Fajr} <br>
+                        സുുഹ്ർ: ${timings.Dhuhr} <br>
+                        അസർ: ${timings.Asr} <br>
+                        മഗ്‌രിബ്: ${timings.Maghrib} <br>
+                        ഇശാഅ്: ${timings.Isha}
+                    `;
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                document.getElementById('azanTime').innerText = "സമയങ്ങൾ ലഭ്യമല്ല";
+            });
     }
 
+    // പേജ് ലോഡ് ചെയ്യുമ്പോൾ തന്നെ സമയം എടുക്കാൻ
     getTimings();
 </script>
-
 </body>
 </html>
