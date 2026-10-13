@@ -10,60 +10,73 @@
             font-family: 'Poppins', sans-serif;
             background: linear-gradient(135deg, #1e3c72, #2a5298);
             margin: 0;
-            padding: 0;
+            padding: 10px;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
             color: #fff;
+            box-sizing: border-box;
         }
         .card {
             background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.2);
-            padding: 25px;
+            padding: 20px;
             border-radius: 20px;
-            width: 380px;
+            width: 100%;
+            max-width: 400px;
             box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
             text-align: center;
         }
-        h2 { margin-bottom: 15px; font-weight: 600; font-size: 22px; }
-        label { font-size: 13px; font-weight: 300; display: block; text-align: left; margin-top: 10px; }
-        select, input {
+        h2 { margin-bottom: 12px; font-weight: 600; font-size: 20px; }
+        label { font-size: 12px; font-weight: 300; display: block; text-align: left; margin-top: 8px; }
+        select {
             width: 100%;
             padding: 10px;
-            margin-top: 5px;
-            margin-bottom: 10px;
+            margin-top: 4px;
+            margin-bottom: 8px;
             border-radius: 8px;
             border: none;
             background: rgba(255, 255, 255, 0.9);
             font-family: 'Poppins', sans-serif;
-            font-size: 15px;
+            font-size: 14px;
             outline: none;
-            box-sizing: border-box;
         }
         .time-box {
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 400;
             background: rgba(0, 0, 0, 0.2);
-            padding: 10px;
+            padding: 8px;
             border-radius: 8px;
-            margin: 15px 0;
+            margin: 12px 0;
         }
         .timings-list {
             text-align: left;
             background: rgba(0, 0, 0, 0.15);
-            padding: 12px;
+            padding: 10px;
             border-radius: 10px;
-            font-size: 14px;
+            font-size: 13px;
         }
-        .timings-list div {
+        .prayer-row {
             display: flex;
             justify-content: space-between;
+            align-items: center;
             margin-bottom: 6px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 4px;
+        }
+        .prayer-row input {
+            width: 45px;
+            padding: 3px;
+            text-align: center;
+            border-radius: 5px;
+            border: none;
+            font-size: 12px;
+            background: rgba(255,255,255,0.9);
         }
         .controls {
-            margin-top: 15px;
+            margin-top: 12px;
             display: flex;
             flex-direction: column;
             gap: 8px;
@@ -76,11 +89,9 @@
             border-radius: 8px;
             cursor: pointer;
             font-weight: 600;
-            font-size: 14px;
+            font-size: 13px;
         }
-        .btn.secondary {
-            background: #2ed573;
-        }
+        .btn.secondary { background: #2ed573; }
     </style>
 </head>
 <body>
@@ -99,17 +110,14 @@
         <option value="Thrissur">Thrissur</option>
     </select>
 
-    <label for="timeOffset">Adjust Time (Minutes +/-):</label>
-    <input type="number" id="timeOffset" value="0" onchange="getTimings()" placeholder="e.g. -5 or +5">
-
     <div class="time-box" id="currentTime">Current Time: --:--:--</div>
     
-    <div class="timings-list" id="timingsList">
-        <div><span>Fajr:</span> <span id="fajr">--:--</span></div>
-        <div><span>Dhuhr:</span> <span id="dhuhr">--:--</span></div>
-        <div><span>Asr:</span> <span id="asr">--:--</span></div>
-        <div><span>Maghrib:</span> <span id="maghrib">--:--</span></div>
-        <div><span>Isha:</span> <span id="isha">--:--</span></div>
+    <div class="timings-list">
+        <div class="prayer-row"><span>Fajr:</span> <span id="fajr">--:--</span> <label style="margin:0">Offset(+/-): <input type="number" id="off_Fajr" value="0" onchange="getTimings()"></label></div>
+        <div class="prayer-row"><span>Dhuhr:</span> <span id="dhuhr">--:--</span> <label style="margin:0">Offset(+/-): <input type="number" id="off_Dhuhr" value="0" onchange="getTimings()"></label></div>
+        <div class="prayer-row"><span>Asr:</span> <span id="asr">--:--</span> <label style="margin:0">Offset(+/-): <input type="number" id="off_Asr" value="0" onchange="getTimings()"></label></div>
+        <div class="prayer-row"><span>Maghrib:</span> <span id="maghrib">--:--</span> <label style="margin:0">Offset(+/-): <input type="number" id="off_Maghrib" value="0" onchange="getTimings()"></label></div>
+        <div class="prayer-row"><span>Isha:</span> <span id="isha">--:--</span> <label style="margin:0">Offset(+/-): <input type="number" id="off_Isha" value="0" onchange="getTimings()"></label></div>
     </div>
 
     <div class="controls">
@@ -118,13 +126,13 @@
     </div>
 </div>
 
-<!-- Standard Azan & Fajr Azan (with As-salatu Khayrun Minan-nawm) -->
 <audio id="normalAzan" src="https://islamicfinder.org/audio/azan.mp3" preload="auto"></audio>
 <audio id="fajrAzan" src="https://www.islamcan.com/audio/adhan/azan2.mp3" preload="auto"></audio>
 
 <script>
     let azanPlayedToday = {};
     let alarmActive = true;
+    let rawTimingsData = {};
 
     function initAudio() {
         const audio1 = document.getElementById('normalAzan');
@@ -158,29 +166,31 @@
 
     function getTimings() {
         const district = document.getElementById('district').value;
-        const offset = parseInt(document.getElementById('timeOffset').value) || 0;
 
         fetch(`https://api.aladhan.com/v1/timingsByCity?city=${district}&country=India&method=2`)
             .then(response => response.json())
             .then(data => {
                 if (data && data.data && data.data.timings) {
-                    let rawTimings = data.data.timings;
-                    window.currentTimings = {
-                        Fajr: adjustMinutes(rawTimings.Fajr, offset),
-                        Dhuhr: adjustMinutes(rawTimings.Dhuhr, offset),
-                        Asr: adjustMinutes(rawTimings.Asr, offset),
-                        Maghrib: adjustMinutes(rawTimings.Maghrib, offset),
-                        Isha: adjustMinutes(rawTimings.Isha, offset)
-                    };
-
-                    document.getElementById('fajr').innerText = format12Hour(window.currentTimings.Fajr);
-                    document.getElementById('dhuhr').innerText = format12Hour(window.currentTimings.Dhuhr);
-                    document.getElementById('asr').innerText = format12Hour(window.currentTimings.Asr);
-                    document.getElementById('maghrib').innerText = format12Hour(window.currentTimings.Maghrib);
-                    document.getElementById('isha').innerText = format12Hour(window.currentTimings.Isha);
+                    rawTimingsData = data.data.timings;
+                    updateDisplayedTimings();
                 }
             })
             .catch(err => console.error(err));
+    }
+
+    function updateDisplayedTimings() {
+        if (!rawTimingsData.Fajr) return;
+
+        ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'].forEach(prayer => {
+            let offset = parseInt(document.getElementById(`off_${prayer}`).value) || 0;
+            let adjustedTime = adjustMinutes(rawTimingsData[prayer], offset);
+            
+            // Save final adjusted time globally for alarm checking
+            if(!window.currentTimings) window.currentTimings = {};
+            window.currentTimings[prayer] = adjustedTime;
+
+            document.getElementById(prayer.toLowerCase()).innerText = format12Hour(adjustedTime);
+        });
     }
 
     function adjustMinutes(timeStr, mins) {
