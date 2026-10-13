@@ -3,63 +3,190 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>കേരള ബാങ്ക് & നിസ്കാര സമയം</title>
+    <title>Kerala Prayer & Azan Times</title>
+    <!-- Google Fonts for Premium Look -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; background: #f4f4f9; padding: 20px; }
-        .container { background: white; padding: 20px; border-radius: 10px; max-width: 400px; margin: auto; box-shadow: 0px 0px 10px rgba(0,0,0,0.1); }
-        select, button { padding: 10px; margin: 10px; width: 80%; font-size: 16px; }
-        .time-box { font-size: 20px; color: #2c3e50; margin: 15px 0; font-weight: bold; }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: #fff;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 30px;
+            border-radius: 20px;
+            width: 350px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            text-align: center;
+        }
+        h2 {
+            margin-bottom: 20px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        label {
+            font-size: 14px;
+            font-weight: 300;
+        }
+        select {
+            width: 100%;
+            padding: 12px;
+            margin-top: 8px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            border: none;
+            background: rgba(255, 255, 255, 0.9);
+            font-family: 'Poppins', sans-serif;
+            font-size: 16px;
+            outline: none;
+            cursor: pointer;
+        }
+        .time-box {
+            font-size: 18px;
+            font-weight: 400;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        .timings-list {
+            text-align: left;
+            background: rgba(0, 0, 0, 0.15);
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 15px;
+        }
+        .timings-list div {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        .audio-btn {
+            background: #ff4757;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-top: 10px;
+            width: 100%;
+        }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h2>കേരള സമയക്രമം</h2>
-    <label for="district">ജില്ല തിരഞ്ഞെടുക്കുക:</label><br>
+<div class="card">
+    <h2>Kerala Prayer Timings</h2>
+    
+    <label for="district">Select District:</label>
     <select id="district" onchange="getTimings()">
-        <option value="Kozhikode">കോഴിക്കോട്</option>
-        <option value="Malappuram">മലപ്പുറം</option>
-        <option value="Thiruvananthapuram">തിരുവനന്തപുരം</option>
-        <option value="Ernakulam">എറണാകുളം</option>
+        <option value="Kozhikode">Kozhikode</option>
+        <option value="Malappuram">Malappuram</option>
+        <option value="Thiruvananthapuram">Thiruvananthapuram</option>
+        <option value="Ernakulam">Ernakulam</option>
+        <option value="Kannur">Kannur</option>
+        <option value="Palakkad">Palakkad</option>
+        <option value="Thrissur">Thrissur</option>
     </select>
 
-    <div class="time-box" id="currentTime">നിലവിലെ സമയം: --:--:--</div>
-    <div class="time-box" id="azanTime">ബാങ്ക് സമയം: കണക്കാക്കുന്നു...</div>
+    <div class="time-box" id="currentTime">Current Time: --:--:--</div>
+    
+    <div class="timings-list" id="timingsList">
+        <div><span>Fajr:</span> <span id="fajr">--:--</span></div>
+        <div><span>Dhuhr:</span> <span id="dhuhr">--:--</span></div>
+        <div><span>Asr:</span> <span id="asr">--:--</span></div>
+        <div><span>Maghrib:</span> <span id="maghrib">--:--</span></div>
+        <div><span>Isha:</span> <span id="isha">--:--</span></div>
+    </div>
+
+    <button class="audio-btn" id="enableAudio" onclick="enableAudio()">Enable Azan Sound</button>
 </div>
 
+<!-- Azan Audio (Online Clean Audio Source) -->
+<audio id="azanAudio" src="https://islamicfinder.org/audio/azan.mp3" preload="auto"></audio>
+
 <script>
+    let azanPlayedToday = {};
+
     // നിലവിലെ സമയം ലൈവ് ആയി കാണിക്കാൻ
     setInterval(() => {
         const now = new Date();
-        document.getElementById('currentTime').innerText = "നിലവിലെ സമയം: " + now.toLocaleTimeString('en-IN');
+        // ഇംഗ്ലീഷ് ഫോണ്ടിൽ മാത്രം സമയം കാണിക്കാൻ en-US ഉപയോഗിക്കുന്നു
+        document.getElementById('currentTime').innerText = "Current Time: " + now.toLocaleTimeString('en-US', {hour12: true});
+        
+        checkAzanTime(now);
     }, 1000);
+
+    function enableAudio() {
+        const audio = document.getElementById('azanAudio');
+        audio.play().then(() => {
+            audio.pause();
+            audio.currentTime = 0;
+            document.getElementById('enableAudio').style.display = 'none';
+            alert("Azan sound enabled successfully!");
+        }).catch(e => {
+            console.log("Audio permission error:", e);
+        });
+    }
 
     function getTimings() {
         const district = document.getElementById('district').value;
-        document.getElementById('azanTime').innerText = "ബാങ്ക് സമയം: ലോഡ് ചെയ്യുന്നു...";
-
         fetch(`https://api.aladhan.com/v1/timingsByCity?city=${district}&country=India&method=2`)
             .then(response => response.json())
             .then(data => {
                 if (data && data.data && data.data.timings) {
-                    const timings = data.data.timings;
-                    document.getElementById('azanTime').innerHTML = `
-                        ഫജർ: ${timings.Fajr} <br>
-                        സുുഹ്ർ: ${timings.Dhuhr} <br>
-                        അസർ: ${timings.Asr} <br>
-                        മഗ്‌രിബ്: ${timings.Maghrib} <br>
-                        ഇശാഅ്: ${timings.Isha}
-                    `;
+                    window.currentTimings = data.data.timings;
+                    document.getElementById('fajr').innerText = format12Hour(window.currentTimings.Fajr);
+                    document.getElementById('dhuhr').innerText = format12Hour(window.currentTimings.Dhuhr);
+                    document.getElementById('asr').innerText = format12Hour(window.currentTimings.Asr);
+                    document.getElementById('maghrib').innerText = format12Hour(window.currentTimings.Maghrib);
+                    document.getElementById('isha').innerText = format12Hour(window.currentTimings.Isha);
                 }
             })
-            .catch(err => {
-                console.error(err);
-                document.getElementById('azanTime').innerText = "സമയങ്ങൾ ലഭ്യമല്ല";
-            });
+            .catch(err => console.error(err));
     }
 
-    // പേജ് ലോഡ് ചെയ്യുമ്പോൾ തന്നെ സമയം എടുക്കാൻ
+    function format12Hour(time24) {
+        let [hours, minutes] = time24.split(':');
+        let h = parseInt(hours);
+        let ampm = h >= 12 ? 'PM' : 'AM';
+        h = h % 12;
+        h = h ? h : 12;
+        return `${h}:${minutes} ${ampm}`;
+    }
+
+    function checkAzanTime(now) {
+        if (!window.currentTimings) return;
+
+        let currentTimeStr = now.toTimeString().substring(0, 5); // "HH:MM" ഫൊർമാറ്റ്
+        let prayers = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+
+        prayers.forEach(prayer => {
+            let prayerTime = window.currentTimings[prayer]; // ഉദാഹരണത്തിന് "05:18"
+            let todayStr = now.toDateString();
+            let key = `${todayStr}-${prayer}`;
+
+            if (prayerTime === currentTimeStr && !azanPlayedToday[key]) {
+                const audio = document.getElementById('azanAudio');
+                audio.play().catch(err => console.log("Audio autoplay blocked", err));
+                azanPlayedToday[key] = true; // ആ ദിവസത്തേക്ക് ആ നിസ്കാരത്തിന് ഒരിക്കൽ മാത്രം മുഴങ്ങാൻ
+            }
+        });
+    }
+
+    // പേജ് ലോഡ് ചെയ്യുമ്പോൾ സമയങ്ങൾ ഫെച്ച് ചെയ്യുക
     getTimings();
 </script>
+
 </body>
 </html>
