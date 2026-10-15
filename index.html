@@ -43,7 +43,7 @@
             font-size: 14px;
             outline: none;
         }
-        .time-box {
+        .time-box, .countdown-box {
             font-size: 14px;
             font-weight: 400;
             background: rgba(0, 0, 0, 0.2);
@@ -55,9 +55,6 @@
             font-size: 15px;
             font-weight: 600;
             background: rgba(255, 165, 2, 0.3);
-            padding: 8px;
-            border-radius: 8px;
-            margin-bottom: 10px;
             border: 1px solid rgba(255, 165, 2, 0.5);
         }
         .timings-list {
@@ -84,6 +81,10 @@
             font-size: 12px;
             background: rgba(255,255,255,0.9);
         }
+        .prayer-row input:disabled {
+            background: rgba(200,200,200,0.9);
+            cursor: not-allowed;
+        }
         .controls {
             margin-top: 12px;
             display: flex;
@@ -102,6 +103,17 @@
         }
         .btn.secondary { background: #2ed573; }
         .btn.test { background: #1e90ff; }
+        .admin-toggle {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+        }
+        .admin-toggle input { cursor: pointer; }
     </style>
 </head>
 <body>
@@ -123,6 +135,11 @@
     <div class="time-box" id="currentTime">Current Time: --:--:--</div>
     <div class="countdown-box" id="countdownTimer">Next Prayer in: --:--:--</div>
     
+    <div class="admin-toggle">
+        <input type="checkbox" id="useAdminSettings" onchange="toggleAdminMode()" checked>
+        <label for="useAdminSettings" style="margin:0; font-size:13px; cursor:pointer;">Use Admin Default Offsets</label>
+    </div>
+
     <div class="timings-list">
         <div class="prayer-row"><span>Fajr:</span> <span id="fajr">--:--</span> <label style="margin:0">+/- <input type="number" id="off_Fajr" value="0" onchange="updateDisplayedTimings()"></label></div>
         <div class="prayer-row"><span>Dhuhr:</span> <span id="dhuhr">--:--</span> <label style="margin:0">+/- <input type="number" id="off_Dhuhr" value="0" onchange="updateDisplayedTimings()"></label></div>
@@ -138,7 +155,6 @@
     </div>
 </div>
 
-<!-- Working Audio Links -->
 <audio id="normalAzan" src="https://www.islamcan.com/audio/adhan/azan1.mp3" preload="auto"></audio>
 <audio id="fajrAzan" src="https://www.islamcan.com/audio/adhan/azan2.mp3" preload="auto"></audio>
 
@@ -147,6 +163,33 @@
     let alarmActive = true;
     let rawTimingsData = {};
     window.currentTimings = {};
+
+    // Mock Admin Configuration (This would ideally be fetched from a database)
+    const adminOffsets = {
+        Fajr: 2,
+        Dhuhr: 0,
+        Asr: 1,
+        Maghrib: -1,
+        Isha: 2
+    };
+
+    function toggleAdminMode() {
+        const useAdmin = document.getElementById('useAdminSettings').checked;
+        const prayers = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+        
+        prayers.forEach(prayer => {
+            const input = document.getElementById(`off_${prayer}`);
+            if (useAdmin) {
+                input.value = adminOffsets[prayer];
+                input.disabled = true;
+            } else {
+                input.disabled = false;
+                // Optionally load user's previous custom offsets from localStorage here
+                input.value = localStorage.getItem(`user_off_${prayer}`) || 0;
+            }
+        });
+        updateDisplayedTimings();
+    }
 
     function initAudio() {
         const audio1 = document.getElementById('normalAzan');
@@ -172,7 +215,6 @@
             alert("Playing test sound...");
         }).catch(err => {
             alert("Playback blocked! Please click '1. Enable Azan Sound' first.");
-            console.error(err);
         });
     }
 
@@ -199,7 +241,7 @@
             .then(data => {
                 if (data && data.data && data.data.timings) {
                     rawTimingsData = data.data.timings;
-                    updateDisplayedTimings();
+                    toggleAdminMode(); // Apply toggle state on load
                 }
             })
             .catch(err => console.error(err));
@@ -207,9 +249,17 @@
 
     function updateDisplayedTimings() {
         if (!rawTimingsData.Fajr) return;
+        const useAdmin = document.getElementById('useAdminSettings').checked;
 
         ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'].forEach(prayer => {
-            let offset = parseInt(document.getElementById(`off_${prayer}`).value) || 0;
+            let input = document.getElementById(`off_${prayer}`);
+            let offset = parseInt(input.value) || 0;
+            
+            // Save to local storage if custom
+            if (!useAdmin) {
+                localStorage.setItem(`user_off_${prayer}`, offset);
+            }
+
             let adjustedTime = adjustMinutes(rawTimingsData[prayer], offset);
             window.currentTimings[prayer] = adjustedTime;
             document.getElementById(prayer.toLowerCase()).innerText = format12Hour(adjustedTime);
@@ -242,7 +292,7 @@
         let todayStr = now.toDateString();
 
         ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'].forEach(prayer => {
-            let prayerTime = window.currentTimings[prayer]; // "HH:MM"
+            let prayerTime = window.currentTimings[prayer];
             let key = `${todayStr}-${prayer}`;
 
             if (prayerTime === currentTimeStr && currentSeconds === 0 && !azanPlayedToday[key]) {
